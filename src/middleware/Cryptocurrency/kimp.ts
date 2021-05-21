@@ -1,5 +1,6 @@
 import axios from 'axios';
 import 'dotenv/config';
+import { ExchangeRate } from '../ExchangeRate/models/ExchangeRate'
 
 let usdCurrencyRate: number;
 
@@ -24,8 +25,10 @@ let fetchKimpData = async (symbol: string) => {
 export const kimp = async () => {
     let symbols = ['BTC', 'ETH', 'XRP', 'LTC', 'ETC', 'DOGE'];
     let returnString = `UPbit - Binance\n\n`;
-    let response = await axios.get(process.env['CURRENCY_RATE_API_URI']!);
-    usdCurrencyRate = response.data.price; // 달러 환율 받아오기
+
+    // fetch exchange rate data from the DB
+    let result = await ExchangeRate.findOne({}, null, {sort: { _id: -1 }}) || { price: 0 };
+    usdCurrencyRate = result.price;
 
     for (const symbol of symbols) {
         let kimpData!: KimpData;
