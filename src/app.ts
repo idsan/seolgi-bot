@@ -19,10 +19,13 @@ mongoose.connect(mongoUrl, { useNewUrlParser: true, useCreateIndex: true, useUni
     // process.exit();
 });
 
-bot.hears('설기야', (ctx) => ctx.reply(`멍멍!`));
+bot.hears('설기야', (ctx) => ctx.reply(`멍멍!!`));
 
 // Cryptocurrency 관련
-bot.command('kimp', async (ctx) => ctx.reply(await kimp()));
+bot.command('kimp', async (ctx) => {
+    let chat = await ctx.reply('데이터를 불러오는 중입니다. 잠시만 기다려 주세요.');    
+    bot.telegram.editMessageText(chat.chat.id, chat.message_id, undefined, await kimp());
+});
 
 // 채굴 상태 보기 (본인)
 bot.command('minerstats', async (ctx) => {
@@ -33,7 +36,12 @@ bot.command('minerstats', async (ctx) => {
 
 // 채굴자 정보 보기 (본인)
 bot.command('minerinfo', async (ctx) => {
-    let miningUser = await ethermine.getMinerInfo(ctx.message.from.id);
+    let miningUser = null;
+    try {
+        miningUser = await ethermine.getMinerInfo(ctx.message.from.id);
+    } catch (err) {
+        console.error(err);
+    }
 
     if (miningUser === null) {
         ctx.reply('등록 된 정보가 없습니다. 지갑주소를 등록해주세요.');
