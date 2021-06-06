@@ -48,18 +48,18 @@ export class Ethermine {
             return 'no';
         }
         
-        let address = miner.walletAddress;
-        let symbol = miner.symbol;
-        if (!(address.length === 42 && address.slice(0, 2) === '0x')) {
+        let { walletAddress, symbol } = miner;
+
+        if (!(walletAddress.length === 42 && walletAddress.slice(0, 2) === '0x')) {
             return 'Invalid address';
         }
 
         let ethermineAPIURI: string;
 
         if (symbol === 'ETH') {
-            ethermineAPIURI = `https://api.ethermine.org/miner/${ address.slice(2) }/currentStats`;
+            ethermineAPIURI = `https://api.ethermine.org/miner/${ walletAddress.slice(2) }/currentStats`;
         } else {
-            ethermineAPIURI = `https://api-etc.ethermine.org/miner/${ address.slice(2) }/currentStats`;
+            ethermineAPIURI = `https://api-etc.ethermine.org/miner/${ walletAddress.slice(2) }/currentStats`;
         }
 
         console.log(ethermineAPIURI);
@@ -83,15 +83,19 @@ export class Ethermine {
             return minerStats.data.error;
         }
 
-        const ms = new MinerStats(minerStats.data.data.unpaid, minerStats.data.data.coinsPerMin, minerStats.data.data.currentHashrate, minerStats.data.data.averageHashrate, minerStats.data.data.reportedHashrate, minerStats.data.data.validShares, minerStats.data.data.staleShares, minerStats.data.data.invalidShares);
+        const { unpaid, coinsPerMin, currentHashrate, averageHashrate, reportedHashrate, validShares, staleShares, invalidShares, unconfirmed } = minerStats.data.data;
 
-        if (minerStats.data.data.unconfirmed !== null) {
-            ms.unconfirmed = minerStats.data.data.unconfirmed * 1e-18;
+        const ms = new MinerStats(unpaid, coinsPerMin, currentHashrate, averageHashrate, reportedHashrate, validShares, staleShares, invalidShares);
+
+        if (unconfirmed !== null) {
+            ms.unconfirmed = unconfirmed * 1e-18;
         }
         const tradePrice = upbitTicker.data[0].trade_price;
         // console.log(ms);
 
         return `
+[ WalletAddress ]
+${ walletAddress }
 ${ (ms.unconfirmed !== undefined) ? `
 ○ Immature Balance
 ${ (ms.unconfirmed)?.toFixed(5) } ${ symbol } / ${ numberWithCommas((ms.unconfirmed * tradePrice).toFixed(0)) } KRW` : ``}
@@ -117,11 +121,6 @@ Valid ${ ms.validShares } ${ (ms.getValidSharesPercentage() !== 0) ? `(${ ms.get
 Stale ${ ms.staleShares } ${ (ms.getStaleSharesPercentage() !== 0) ? `(${ ms.getStaleSharesPercentage() } %)`: '' }
 Invalid ${ ms.invalidShares } ${ (ms.getInvalidSharesPercentage() !== 0) ? `(${ ms.getInvalidSharesPercentage() } %)`: '' }
 `;
-    }
-
-    async getMinerInfo(uid: number) {
-        let miningUser = await Miner.findOne({ userId: uid });
-        return miningUser;
     }
 
     async setMinerInfo(uid: number, symbol: string, walletAddress: string) {

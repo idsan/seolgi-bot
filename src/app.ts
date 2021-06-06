@@ -2,12 +2,14 @@ import { Context, Telegraf } from 'telegraf';
 import axios from 'axios';
 import mongoose from "mongoose";
 import bluebird from "bluebird";
-import { kimp } from './middleware/Cryptocurrency';
+import { Kimp } from './middleware/Cryptocurrency/Kimp';
 import { Ethermine } from './middleware/Cryptocurrency/Ethermine'
 import 'dotenv/config';
 
 const bot = new Telegraf(process.env.BOT_TOKEN || 'YOUR_TELEGRAM_BOT_TOKEN');
 const ethermine = new Ethermine();
+const kimp = new Kimp();
+
 // Connect to MongoDB
 const mongoUrl: string = process.env["MONGODB_URI"]!;
 mongoose.Promise = bluebird;
@@ -24,39 +26,13 @@ bot.hears('설기야', (ctx) => ctx.reply(`멍멍!!`));
 // Cryptocurrency 관련
 bot.command('kimp', async (ctx) => {
     let chat = await ctx.reply('데이터를 불러오는 중입니다. 잠시만 기다려 주세요.');    
-    bot.telegram.editMessageText(chat.chat.id, chat.message_id, undefined, await kimp());
+    bot.telegram.editMessageText(chat.chat.id, chat.message_id, undefined, await kimp.getKimp());
 });
 
 // 채굴 상태 보기 (본인)
 bot.command('minerstats', async (ctx) => {
     let result = await ethermine.getMinerStats(ctx.message.from.id);
     ctx.reply(result);
-});
-
-
-// 채굴자 정보 보기 (본인)
-bot.command('minerinfo', async (ctx) => {
-    let miningUser = null;
-    try {
-        miningUser = await ethermine.getMinerInfo(ctx.message.from.id);
-    } catch (err) {
-        console.error(err);
-    }
-
-    if (miningUser === null) {
-        ctx.reply('등록 된 정보가 없습니다. 지갑주소를 등록해주세요.');
-        return;
-    }
-
-    ctx.reply(`
-${ ctx.message.from.first_name }님의 정보입니다.
-
-[ Symbol ]
-${ miningUser.symbol }
-
-[ WalletAddress ]
-${ miningUser.walletAddress }
-`);
 });
 
 // 채굴자 정보 등록 (본인)
