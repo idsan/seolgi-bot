@@ -1,1 +1,0 @@
-export { kimp } from './kimp';
