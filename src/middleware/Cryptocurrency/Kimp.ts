@@ -1,16 +1,11 @@
 import axios from 'axios';
-import { ExchangeRate } from '../../models/ExchangeRate'
+import { ExchangeRate } from '../../models/ExchangeRate';
 import 'dotenv/config';
 
-let usdCurrencyRate: number;
 let numberWithCommas = (x: number) => x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
 
 class KimpData {
-    public kimpRate!: number;
-
-    constructor (public binancePrice: number, public upbitPrice: number) { 
-        this.kimpRate = (upbitPrice - binancePrice * usdCurrencyRate) / (binancePrice * usdCurrencyRate)
-    }
+    constructor (public binancePrice: number, public upbitPrice: number) { }
 }
 
 export class Kimp {
@@ -33,22 +28,20 @@ export class Kimp {
         let returnString = `UPbit - Binance\n\n`;
     
         // fetch exchange rate data from the DB
-        let result = await ExchangeRate.findOne({}, null, {sort: { _id: -1 }}) || { price: 0 };
-        usdCurrencyRate = result.price;
-    
+        const exchangeRateData = await ExchangeRate.findOne({ currencyCode: 'USD' });
+        const usdBasePrice = exchangeRateData?.basePrice!;
+
         for (const symbol of symbols) {
-            let kimpData!: KimpData;
-    
             try {
-                kimpData = await this.fetchKimpData(symbol);
+                const { upbitPrice, binancePrice } = await this.fetchKimpData(symbol);
+                const kimpRate = (upbitPrice - binancePrice * usdBasePrice) / (binancePrice * usdBasePrice);
+                returnString += `[ ${ symbol } ] ${ (kimpRate * 100).toFixed(2) }%\n`;
+                returnString += `${ numberWithCommas(upbitPrice) } KRW\n`;
+                returnString += `${ numberWithCommas(parseFloat((binancePrice * 1).toFixed(2))) } USD\n\n`;
             } catch (error) {
                 console.error(error);
                 return '데이터를 불러오는데 실패하였습니다.';
             }
-    
-            returnString += `[ ${ symbol } ] ${ (kimpData.kimpRate * 100).toFixed(2) }%\n`;
-            returnString += `${ numberWithCommas(kimpData.upbitPrice) } KRW\n`;
-            returnString += `${ numberWithCommas(parseFloat((kimpData.binancePrice * 1).toFixed(2))) } USD\n\n`;
         };
     
         console.log(`김프 가격 출력 ${ new Date() }`);
