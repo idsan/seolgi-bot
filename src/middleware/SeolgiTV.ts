@@ -86,6 +86,31 @@ export default class SeolgiTV {
     return `${formatedStartAt} ~ ${formatedEndAt} (${diffMinutes} m)`;
   }
 
+  public async getPublicURL(): Promise<string> {
+    const data: any = (
+      await axios.get(`${process.env.NGROK_API_BASE_URL}/tunnels`, {
+        headers: {
+          Authorization: `Bearer ${process.env.NGROK_TUNNEL_AUTH_TOKEN}`,
+          "Ngrok-Version": "2",
+        },
+      })
+    ).data;
+
+    const findTunnelWithForwardsTo = (
+      dataArray: any,
+      targetForwardsTo: any
+    ): any =>
+      dataArray.find((item: any) => item.forwards_to === targetForwardsTo);
+
+    const targetForwardsTo = "http://localhost:8888";
+    const foundTunnel: any = findTunnelWithForwardsTo(
+      data.tunnels,
+      targetForwardsTo
+    );
+
+    return foundTunnel ? foundTunnel.public_url : null;
+  }
+
   /**
    * 녹화목록을 출력함
    *
@@ -103,21 +128,41 @@ export default class SeolgiTV {
         (currentPage - 1) * MAX_DISPLAY_COUNT
       }&limit=${MAX_DISPLAY_COUNT}`
     );
-    const totalPage = Math.floor(recorded.data.total / MAX_DISPLAY_COUNT) + 1;
+    if (recorded.data.total === 0) {
+      let message = "<b>녹화목록</b>\n\n";
+      message.concat("데이터가 존재하지 않습니다.");
+      await ctx.reply(message, {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "메시지 지우기", callback_data: "delmsg" }],
+          ],
+        },
+      });
+      return;
+    }
+    const totalPage = Math.ceil(recorded.data.total / MAX_DISPLAY_COUNT);
     if (currentPage > totalPage) {
       return;
     }
 
+    const publicURL = await this.getPublicURL();
+
     let message = "<b>녹화목록</b>\n\n";
     for (const el of recorded.data.records) {
       const { id, name, startAt, endAt } = el;
+
+      const authorizedPublicURL = new URL(`${publicURL}/api/videos/${id}`);
+      authorizedPublicURL.username =
+        process.env.NGROK_BASIC_AUTH_USERNAME || "USERNAME";
+      authorizedPublicURL.password =
+        process.env.NGROK_BASIC_AUTH_PASSWORD || "PASSWORD";
 
       message = message.concat(`<b>${name}</b>\n`);
       message = message.concat(
         `${this.getFormattedStarEndTime(startAt, endAt)}\n`
       );
       message = message.concat(
-        `<a href="${BASE_API_URL}/videos/${id}">RAW</a>\n\n`
+        `<a href="${authorizedPublicURL.href}">재생</a>\n\n`
       );
     }
     message = message.concat(`${currentPage} / ${totalPage} page`);
