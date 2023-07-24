@@ -1,5 +1,6 @@
 import { Telegraf } from "telegraf";
 import SeolgiTV from "./middleware/SeolgiTV";
+import fs from "fs/promises";
 import "dotenv/config";
 
 (async () => {
@@ -7,21 +8,58 @@ import "dotenv/config";
 
   const seolgiTv: SeolgiTV = await SeolgiTV.build();
 
+  let whiteList: any;
+
+  try {
+    const data = await fs.readFile("./whiteList.json", { encoding: "utf8" });
+    whiteList = JSON.parse(data).data;
+  } catch (err) {
+    console.error(err);
+  }
+
   bot.hears("설기야", (ctx) => ctx.reply(`멍멍!!`));
 
   // 녹화목록 불러오기
   bot.command("recorded", async (ctx) => {
-    await seolgiTv.recorded(ctx, 1);
+    // TODO: 화이트리스트 미들웨어화
+    if (whiteList.find((item: any) => item.id === ctx.from.id)) {
+      await seolgiTv.recorded(ctx, 1);
+    } else {
+      await ctx.reply("권한이 없습니다.");
+    }
   });
 
   // 녹화목록 불러오기(페이지 지정)
   bot.action(/^\/recorded page \d*$/, async (ctx) => {
     const page = ctx.match.input.split(" ")[2];
-    await seolgiTv.recorded(ctx, parseInt(page));
+    // TODO: 화이트리스트 미들웨어화
+    if (whiteList.find((item: any) => item.id === ctx.from!.id)) {
+      await seolgiTv.recorded(ctx, parseInt(page));
+    } else {
+      await ctx.reply("권한이 없습니다.");
+    }
   });
 
-  // TODO: 예약목록 불러오기 추가
-  bot.command("reserves", (ctx) => ctx.reply(`으르렁!!`));
+  // 예약목록 불러오기
+  bot.command("reserves", async (ctx) => {
+    // TODO: 화이트리스트 미들웨어화
+    if (whiteList.find((item: any) => item.id === ctx.from.id)) {
+      await seolgiTv.reserves(ctx, 1);
+    } else {
+      await ctx.reply("권한이 없습니다.");
+    }
+  });
+
+  // 예약목록 불러오기(페이지 지정)
+  bot.action(/^\/recorded page \d*$/, async (ctx) => {
+    const page = ctx.match.input.split(" ")[2];
+    // TODO: 화이트리스트 미들웨어화
+    if (whiteList.find((item: any) => item.id === ctx.from!.id)) {
+      await seolgiTv.reserves(ctx, parseInt(page));
+    } else {
+      await ctx.reply("권한이 없습니다.");
+    }
+  });
 
   // TODO: 방송국 목록 불러오기(epg 목록불러오기) 추가
   bot.command("channels", (ctx) => ctx.reply(`왈왈!!`));
