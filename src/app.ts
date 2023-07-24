@@ -51,7 +51,7 @@ import "dotenv/config";
   });
 
   // 예약목록 불러오기(페이지 지정)
-  bot.action(/^\/recorded page \d*$/, async (ctx) => {
+  bot.action(/^\/reserves page \d*$/, async (ctx) => {
     const page = ctx.match.input.split(" ")[2];
     // TODO: 화이트리스트 미들웨어화
     if (whiteList.find((item: any) => item.id === ctx.from!.id || item.id === ctx.chat!.id)) {
