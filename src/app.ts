@@ -22,7 +22,7 @@ import "dotenv/config";
   // 녹화목록 불러오기
   bot.command("recorded", async (ctx) => {
     // TODO: 화이트리스트 미들웨어화
-    if (whiteList.find((item: any) => item.id === ctx.from.id)) {
+    if (whiteList.find((item: any) => item.id === ctx.from.id || item.id === ctx.chat.id)) {
       await seolgiTv.recorded(ctx, 1);
     } else {
       await ctx.reply("권한이 없습니다.");
@@ -33,7 +33,7 @@ import "dotenv/config";
   bot.action(/^\/recorded page \d*$/, async (ctx) => {
     const page = ctx.match.input.split(" ")[2];
     // TODO: 화이트리스트 미들웨어화
-    if (whiteList.find((item: any) => item.id === ctx.from!.id)) {
+    if (whiteList.find((item: any) => item.id === ctx.from!.id || item.id === ctx.chat!.id)) {
       await seolgiTv.recorded(ctx, parseInt(page));
     } else {
       await ctx.reply("권한이 없습니다.");
@@ -43,7 +43,7 @@ import "dotenv/config";
   // 예약목록 불러오기
   bot.command("reserves", async (ctx) => {
     // TODO: 화이트리스트 미들웨어화
-    if (whiteList.find((item: any) => item.id === ctx.from.id)) {
+    if (whiteList.find((item: any) => item.id === ctx.from.id || item.id === ctx.chat.id)) {
       await seolgiTv.reserves(ctx, 1);
     } else {
       await ctx.reply("권한이 없습니다.");
@@ -54,7 +54,7 @@ import "dotenv/config";
   bot.action(/^\/recorded page \d*$/, async (ctx) => {
     const page = ctx.match.input.split(" ")[2];
     // TODO: 화이트리스트 미들웨어화
-    if (whiteList.find((item: any) => item.id === ctx.from!.id)) {
+    if (whiteList.find((item: any) => item.id === ctx.from!.id || item.id === ctx.chat!.id)) {
       await seolgiTv.reserves(ctx, parseInt(page));
     } else {
       await ctx.reply("권한이 없습니다.");
