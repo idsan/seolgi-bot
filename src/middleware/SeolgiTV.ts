@@ -4,12 +4,7 @@ import "dotenv/config";
 import { Context } from "telegraf";
 import { DateTime } from "luxon";
 
-const {
-  MAX_RETRY_COUNT,
-  DEFAULT_AXIOS_REQUEST_CONFIG,
-  MAX_DISPLAY_COUNT,
-  DEFAULT_LOCALE,
-} = SeolgiTVConstants;
+const { MAX_RETRY_COUNT, DEFAULT_AXIOS_REQUEST_CONFIG, MAX_DISPLAY_COUNT, DEFAULT_LOCALE } = SeolgiTVConstants;
 
 export default class SeolgiTV {
   /** 채널정보 저장용 */
@@ -29,32 +24,19 @@ export default class SeolgiTV {
 
     const publicURL = await this.getPublicURL();
     const authorizedPublicURL = new URL(`${publicURL}/api/channels`);
-    authorizedPublicURL.username =
-      process.env.NGROK_BASIC_AUTH_USERNAME || "USERNAME";
-    authorizedPublicURL.password =
-      process.env.NGROK_BASIC_AUTH_PASSWORD || "PASSWORD";
+    authorizedPublicURL.username = process.env.NGROK_BASIC_AUTH_USERNAME || "USERNAME";
+    authorizedPublicURL.password = process.env.NGROK_BASIC_AUTH_PASSWORD || "PASSWORD";
 
-    for (
-      let retry = 0;
-      retry < MAX_RETRY_COUNT && this.channels.size === 0;
-      retry++
-    ) {
+    for (let retry = 0; retry < MAX_RETRY_COUNT && this.channels.size === 0; retry++) {
       try {
-        const channels: [] = (
-          await axios.get(
-            `${authorizedPublicURL.href}`,
-            DEFAULT_AXIOS_REQUEST_CONFIG
-          )
-        ).data;
+        const channels: [] = (await axios.get(`${authorizedPublicURL.href}`, DEFAULT_AXIOS_REQUEST_CONFIG)).data;
         channels.forEach((e) => {
           const { id, halfWidthName } = e;
           this.channels.set(id, halfWidthName);
         });
         console.log("채널정보 불러오기 성공");
       } catch (e) {
-        console.error(
-          `(${retry + 1}/${MAX_RETRY_COUNT}) 채널정보 불러오기 실패 - ${e}`
-        );
+        console.error(`(${retry + 1}/${MAX_RETRY_COUNT}) 채널정보 불러오기 실패 - ${e}`);
       }
     }
 
@@ -83,9 +65,7 @@ export default class SeolgiTV {
   public getFormattedStarEndTime(startAt: number, endAt: number): string {
     const dtStartAt = DateTime.fromMillis(startAt);
     const dtEndAt = DateTime.fromMillis(endAt);
-    const formatedStartAt = dtStartAt
-      .setLocale(DEFAULT_LOCALE)
-      .toFormat("LL/dd(ccccc) HH:mm")!;
+    const formatedStartAt = dtStartAt.setLocale(DEFAULT_LOCALE).toFormat("LL/dd(ccccc) HH:mm")!;
     const formatedEndAt = dtEndAt.setLocale(DEFAULT_LOCALE).toFormat("HH:mm")!;
     const diffMinutes = dtEndAt.diff(dtStartAt, "minutes").toFormat("mm");
 
@@ -102,17 +82,11 @@ export default class SeolgiTV {
       })
     ).data;
 
-    const findTunnelWithForwardsTo = (
-      dataArray: any,
-      targetForwardsTo: any
-    ): any =>
+    const findTunnelWithForwardsTo = (dataArray: any, targetForwardsTo: any): any =>
       dataArray.find((item: any) => item.forwards_to === targetForwardsTo);
 
     const targetForwardsTo = process.env.NGROK_TARGET_FORWARD_TO;
-    const foundTunnel: any = findTunnelWithForwardsTo(
-      data.tunnels,
-      targetForwardsTo
-    );
+    const foundTunnel: any = findTunnelWithForwardsTo(data.tunnels, targetForwardsTo);
 
     return foundTunnel ? foundTunnel.public_url : null;
   }
@@ -129,11 +103,20 @@ export default class SeolgiTV {
     }
 
     const publicURL = await this.getPublicURL();
+
+    if (publicURL === null) {
+      if (!ctx.callbackQuery) {
+        await ctx.reply(`PublicURL 취득에 실패했습니다.`);
+      } else {
+        await ctx.editMessageText(`PublicURL 취득에 실패했습니다.`);
+      }
+
+      return;
+    }
+
     const authorizedPublicURL = new URL(`${publicURL}/api`);
-    authorizedPublicURL.username =
-      process.env.NGROK_BASIC_AUTH_USERNAME || "USERNAME";
-    authorizedPublicURL.password =
-      process.env.NGROK_BASIC_AUTH_PASSWORD || "PASSWORD";
+    authorizedPublicURL.username = process.env.NGROK_BASIC_AUTH_USERNAME || "USERNAME";
+    authorizedPublicURL.password = process.env.NGROK_BASIC_AUTH_PASSWORD || "PASSWORD";
 
     // 해당 페이지의 녹화 목록 불러오기
     const recorded = await axios.get(
@@ -146,9 +129,7 @@ export default class SeolgiTV {
       message.concat("데이터가 존재하지 않습니다.");
       await ctx.reply(message, {
         reply_markup: {
-          inline_keyboard: [
-            [{ text: "메시지 지우기", callback_data: "delmsg" }],
-          ],
+          inline_keyboard: [[{ text: "메시지 지우기", callback_data: "delmsg" }]],
         },
       });
       return;
@@ -163,12 +144,8 @@ export default class SeolgiTV {
       const { id, name, startAt, endAt } = el;
 
       message = message.concat(`<b>${name}</b>\n`);
-      message = message.concat(
-        `${this.getFormattedStarEndTime(startAt, endAt)}\n`
-      );
-      message = message.concat(
-        `<a href="${authorizedPublicURL.href}/videos/${id}">재생</a>\n\n`
-      );
+      message = message.concat(`${this.getFormattedStarEndTime(startAt, endAt)}\n`);
+      message = message.concat(`<a href="${authorizedPublicURL.href}/videos/${id}">재생</a>\n\n`);
     }
     message = message.concat(`${currentPage} / ${totalPage} page`);
 
@@ -229,11 +206,20 @@ export default class SeolgiTV {
     }
 
     const publicURL = await this.getPublicURL();
+
+    if (publicURL === null) {
+      if (!ctx.callbackQuery) {
+        await ctx.reply(`PublicURL 취득에 실패했습니다.`);
+      } else {
+        await ctx.editMessageText(`PublicURL 취득에 실패했습니다.`);
+      }
+
+      return;
+    }
+
     const authorizedPublicURL = new URL(`${publicURL}/api`);
-    authorizedPublicURL.username =
-      process.env.NGROK_BASIC_AUTH_USERNAME || "USERNAME";
-    authorizedPublicURL.password =
-      process.env.NGROK_BASIC_AUTH_PASSWORD || "PASSWORD";
+    authorizedPublicURL.username = process.env.NGROK_BASIC_AUTH_USERNAME || "USERNAME";
+    authorizedPublicURL.password = process.env.NGROK_BASIC_AUTH_PASSWORD || "PASSWORD";
 
     // 해당 페이지의 예약 목록 불러오기
     const recorded = await axios.get(
@@ -246,9 +232,7 @@ export default class SeolgiTV {
       message.concat("데이터가 존재하지 않습니다.");
       await ctx.reply(message, {
         reply_markup: {
-          inline_keyboard: [
-            [{ text: "메시지 지우기", callback_data: "delmsg" }],
-          ],
+          inline_keyboard: [[{ text: "메시지 지우기", callback_data: "delmsg" }]],
         },
       });
       return;
@@ -267,15 +251,11 @@ export default class SeolgiTV {
         message = message.concat(`<b>[ 🔴 녹화중... ]</b>\n`);
       }
       message = message.concat(`<b>${name}</b>\n`);
-      message = message.concat(
-        `${this.getFormattedStarEndTime(startAt, endAt)}\n`
-      );
+      message = message.concat(`${this.getFormattedStarEndTime(startAt, endAt)}\n`);
       message = message.concat(
         `<a href="${
           authorizedPublicURL.href
-        }/streams/live/${channelId}/m2ts?mode=2">실시간 스트리밍(${this.getChannelName(
-          channelId
-        )})</a>\n\n`
+        }/streams/live/${channelId}/m2ts?mode=2">실시간 스트리밍(${this.getChannelName(channelId)})</a>\n\n`
       );
     }
     message = message.concat(`${currentPage} / ${totalPage} page`);
